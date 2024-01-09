@@ -67,7 +67,19 @@ async function run() {
 
         }
 
-        app.get('/users', verifyToken, async (req, res) => {
+        // user verify admin after verifyToken
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isAdmin = user?.role === 'admin';
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            next();
+        }
+
+        app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
             // console.log("inside verify token", req.headers);
             const result = await userCollection.find().toArray();
             res.send(result)
@@ -100,7 +112,7 @@ async function run() {
             res.send(result)
         })
 
-        app.patch('/users/:id', async (req, res) => {
+        app.patch('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             console.log('patch', id)
             const filter = { _id: new ObjectId(id) };
@@ -113,7 +125,7 @@ async function run() {
             res.send(result)
         })
 
-        app.delete('/users/:id', async (req, res) => {
+        app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             // console.log('users', id)
             const query = { _id: new ObjectId(id) }
@@ -127,6 +139,21 @@ async function run() {
             const result = await menuCollection.find().toArray();
             res.send(result)
         })
+
+        app.post('/menu', verifyToken, verifyAdmin, async (req, res) => {
+            const item = req.body;
+            const result = await menuCollection.insertOne(item);
+            res.send(result)
+        })
+
+        app.delete('/menu/:id', async (res, req) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await menuCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // reviews related api
         app.get('/reviews', async (req, res) => {
             const result = await reviewCollection.find().toArray();
             res.send(result)
