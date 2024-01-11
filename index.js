@@ -224,6 +224,10 @@ async function run() {
 
 
         // PAYMENT intent
+
+
+
+
         app.post('/create-payment-intent', async (req, res) => {
             const { price } = req.body;
             const amount = parseInt(price * 100);
@@ -248,6 +252,15 @@ async function run() {
             }
             const deleteResults = await cartCollection.deleteMany(query)
             res.send({ paymentResult, deleteResults })
+        })
+
+        app.get('/payments/:email', verifyToken, async (req, res) => {
+            const query = { email: req.params.email }
+            if (req.params.email !== req.decoded.email) {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+            const result = await paymentCollection.find(query).toArray();
+            res.send(result)
         })
 
         // await client.db("admin").command({ ping: 1 });
